@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ثبت‌نام | Config Cloud Panel</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo"><span class="dot"></span><span>Config Cloud Panel</span></div>
+    <h1>ساخت حساب کاربری</h1>
+    <p class="sub">پس از ثبت‌نام، یک Workspace اختصاصی برای شما ساخته می‌شود</p>
+    <div class="error-box" id="err"></div>
+    <form id="registerForm">
+      <div class="field"><label>نام</label><input type="text" name="name" autocomplete="name"></div>
+      <div class="field"><label>ایمیل</label><input type="email" name="email" required autocomplete="email"></div>
+      <div class="field"><label>رمز عبور</label><input type="password" name="password" required minlength="8" autocomplete="new-password"><div class="note">حداقل 8 کاراکتر</div></div>
+      <button class="btn btn-primary" type="submit">ایجاد حساب</button>
+    </form>
+    <div class="auth-foot">قبلا ثبت‌نام کرده‌اید؟ <a href="/login" style="color:var(--cyan)">وارد شوید</a></div>
+  </div>
+</div>
+<script src="/js/api.js"></script>
+<script>
+document.getElementById("registerForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById("err");
+  errBox.classList.remove("show");
+  const fd = new FormData(e.target);
+  try {
+    await API.post("/api/auth/register", { name: fd.get("name"), email: fd.get("email"), password: fd.get("password") });
+    window.location.href = "/dashboard";
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.classList.add("show");
+  }
+});
+</script>
+</body>
+</html>

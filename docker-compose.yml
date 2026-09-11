@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ccp_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ccp
+      POSTGRES_PASSWORD: ccp_password
+      POSTGRES_DB: config_cloud_panel
+    volumes:
+      - ccp_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ccp -d config_cloud_panel"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    container_name: ccp_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://ccp:ccp_password@db:5432/config_cloud_panel?schema=public
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+volumes:
+  ccp_db_data:

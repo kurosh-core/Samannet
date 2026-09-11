@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ResourceStatus {
+  ACTIVE
+  DISABLED
+  EXPIRED
+}
+
+enum Protocol {
+  VLESS
+  VMESS
+  TROJAN
+  SHADOWSOCKS
+  SOCKS5
+  HTTP
+  WIREGUARD
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  planId    String?
+  plan      Plan?    @relation(fields: [planId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users               User[]
+  configs             Config[]
+  configUsers         ConfigUser[]
+  subscriptions       Subscription[]
+  cloudflareConnection CloudflareConnection?
+  trafficUsage        TrafficUsage[]
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+
+  @@index([planId])
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  role         Role      @default(USER)
+  status       ResourceStatus @default(ACTIVE)
+  workspaceId  String?
+  workspace    Workspace? @relation(fields: [workspaceId], references: [id])
+  createdAt    DateTime  @default(now())
+  lastSeen     DateTime?
+
+  sessions Session[]
+
+  @@index([workspaceId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  userAgent String?
+  ip        String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Plan {
+  id            String   @id @default(cuid())
+  name          String   @unique
+  maxConfigs    Int      @default(5)
+  maxUsers      Int      @default(10)
+  trafficLimitGb Int     @default(10)
+  durationDays  Int      @default(30)
+  features      Json     @default("[]")
+  createdAt     DateTime @default(now())
+
+  workspaces Workspace[]
+}
+
+model Config {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name          String
+  protocol      Protocol
+  server        String
+  port          Int
+  settings      Json      // پارامترهای اختصاصی پروتکل (uuid, password, keys, transport, tls, ...)
+  status        ResourceStatus @default(ACTIVE)
+  trafficLimitBytes BigInt? // null = Unlimited
+  trafficUsedBytes  BigInt  @default(0)
+  maxUsers      Int?
+  description   String?
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  subscriptionConfigs SubscriptionConfig[]
+  trafficUsage        TrafficUsage[]
+
+  @@index([workspaceId])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model ConfigUser {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name           String
+  status         ResourceStatus @default(ACTIVE)
+  trafficLimitBytes BigInt?
+  trafficUsedBytes  BigInt @default(0)
+  expiresAt      DateTime?
+  createdAt      DateTime @default(now())
+  lastSeen       DateTime?
+
+  @@index([workspaceId])
+}
+
+model Subscription {
+  id           String   @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name         String
+  token        String   @unique // بخش تصادفی امن در URL: /sub/{token}
+  status       ResourceStatus @default(ACTIVE)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  configs SubscriptionConfig[]
+
+  @@index([workspaceId])
+  @@index([token])
+}
+
+model SubscriptionConfig {
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  configId       String
+  config         Config       @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@id([subscriptionId, configId])
+  @@index([configId])
+}
+
+model TrafficUsage {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  configId    String?
+  config      Config?  @relation(fields: [configId], references: [id], onDelete: Cascade)
+  uploadBytes   BigInt @default(0)
+  downloadBytes BigInt @default(0)
+  recordedAt  DateTime @default(now())
+
+  @@index([workspaceId])
+  @@index([configId])
+  @@index([recordedAt])
+}
+
+model CloudflareConnection {
+  id            String   @id @default(cuid())
+  workspaceId   String   @unique
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  accountId     String
+  accountName   String?
+  zoneId        String?
+  zoneName      String?
+  encryptedToken String  // رمزنگاری شده با AES-256-GCM، هرگز plaintext ذخیره نمی‌شود
+  status        String   @default("connected")
+  lastChecked   DateTime?
+  createdAt     DateTime @default(now())
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  title       String
+  body        String?
+  read        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  userId      String?
+  action      String
+  metadata    Json?
+  ip          String?
+  createdAt   DateTime @default(now())
+
+  @@index([workspaceId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model SystemSetting {
+  key   String @id
+  value Json
+}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ورود | Config Cloud Panel</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo"><span class="dot"></span><span>Config Cloud Panel</span></div>
+    <h1>ورود به حساب کاربری</h1>
+    <p class="sub">برای دسترسی به Workspace خود وارد شوید</p>
+    <div class="error-box" id="err"></div>
+    <form id="loginForm">
+      <div class="field"><label>ایمیل</label><input type="email" name="email" required autocomplete="email"></div>
+      <div class="field"><label>رمز عبور</label><input type="password" name="password" required autocomplete="current-password"></div>
+      <button class="btn btn-primary" type="submit">ورود</button>
+    </form>
+    <div class="auth-foot">حساب کاربری ندارید؟ <a href="/register" style="color:var(--cyan)">ثبت‌نام کنید</a></div>
+  </div>
+</div>
+<script src="/js/api.js"></script>
+<script>
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById("err");
+  errBox.classList.remove("show");
+  const fd = new FormData(e.target);
+  try {
+    await API.post("/api/auth/login", { email: fd.get("email"), password: fd.get("password") });
+    window.location.href = "/dashboard";
+  } catch (err) {
+    errBox.textContent = err.message;
+    errBox.classList.add("show");
+  }
+});
+</script>
+</body>
+</html>

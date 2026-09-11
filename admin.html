@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Panel | Config Cloud Panel</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="dot"></span><span>Admin Panel</span></div>
+    <div id="navList"></div>
+    <div class="sidebar-footer">
+      <div class="nav-item" onclick="location.href='/dashboard'"><span class="ic">↩</span> بازگشت به پنل کاربری</div>
+      <div class="nav-item" id="logoutBtn"><span class="ic">⏻</span> خروج</div>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="topbar">
+      <div></div>
+      <div class="right"><div class="user-menu"><div class="avatar" id="avatarInit">A</div><span id="userEmail">...</span></div></div>
+    </div>
+    <div class="content" id="content"><div class="empty-state">در حال بارگذاری...</div></div>
+  </div>
+</div>
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modalBody"></div></div>
+<script src="/js/api.js"></script>
+<script src="/js/admin.js"></script>
+</body>
+</html>
